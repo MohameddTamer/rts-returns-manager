@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTS Returns Ledger — Station Waybills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAFAF7; --ink:#141414; --red:#C8102E; --rule:#D8D8D2; --rule-dark:#141414;
+    --sans:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+  }
+  *{box-sizing:border-box;border-radius:0}
+  html{font-variant-numeric:tabular-nums}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+  .sheet{max-width:1180px;margin:0 auto;padding:0 28px 64px}
+
+  /* masthead: a printed form header, not a navbar */
+  .masthead{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:end;
+    padding:26px 0 14px;border-bottom:3px solid var(--ink)}
+  .mark{display:flex;align-items:center;gap:12px}
+  .mark svg{display:block}
+  .wordmark{font-weight:900;font-size:30px;letter-spacing:-.5px;line-height:.95;text-transform:uppercase}
+  .wordmark small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:2.5px;margin-top:5px}
+  .mast-note{font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--ink);max-width:300px;line-height:1.6}
+  .mast-note b{color:var(--red)}
+
+  /* ledger line: figures on one ruled row, never cards */
+  .ledgerline{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--ink);font-family:var(--mono)}
+  .ledgerline div{padding:10px 18px 10px 0;margin-right:18px;border-right:1px solid var(--rule);padding-right:18px}
+  .ledgerline div:last-child{border-right:none}
+  .ledgerline span{display:block;font-family:var(--sans);font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase}
+  .ledgerline b{font-size:22px;font-weight:600}
+  .ledgerline .hot b{color:var(--red)}
+
+  /* toolbar as form fields */
+  .toolbar{display:grid;grid-template-columns:170px 1fr 220px auto;gap:0;border-bottom:1px solid var(--ink)}
+  .field{padding:12px 16px 12px 0;margin-right:16px;border-right:1px solid var(--rule)}
+  .field:last-child{border-right:none;margin-right:0;padding-right:0}
+  .field label{display:block;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+  .field input,.field select{width:100%;font-family:var(--mono);font-size:14px;color:var(--ink);
+    background:transparent;border:none;border-bottom:2px solid var(--ink);padding:4px 0;outline:none;border-radius:0;
+    appearance:none;-webkit-appearance:none}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23141414'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right center;cursor:pointer}
+  .field input:focus,.field select:focus{border-bottom-color:var(--red)}
+  .btn{font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;
+    background:var(--ink);color:var(--paper);border:2px solid var(--ink);padding:10px 18px;cursor:pointer;align-self:end}
+  .btn:hover{background:var(--paper);color:var(--ink)}
+  .btn.plain{background:transparent;color:var(--ink)}
+  .btn.plain:hover{background:var(--ink);color:var(--paper)}
+  .btn:active{transform:translateY(1px)}
+
+  /* a return = one printed waybill form */
+  .form{display:grid;grid-template-columns:118px 1fr 240px;border:1px solid var(--ink);border-top:none;background:var(--paper)}
+  .form:first-of-type{border-top:1px solid var(--ink);margin-top:22px}
+  .serial{border-right:1px solid var(--ink);padding:16px 12px;text-align:left}
+  .serial .no{font-weight:900;font-size:34px;line-height:1;letter-spacing:-1px}
+  .serial .lbl{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;margin-top:6px}
+  .fields{padding:14px 18px;border-right:1px solid var(--rule)}
+  .fields h3{margin:0;font-family:var(--mono);font-weight:600;font-size:19px;letter-spacing:.5px}
+  .fgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 18px;margin-top:10px}
+  .fgrid div{border-top:1px solid var(--rule);padding-top:5px}
+  .fgrid span{display:block;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase}
+  .fgrid b{font-weight:500;font-size:13.5px}
+  .fgrid .mono{font-family:var(--mono);font-size:13px}
+  .note{margin-top:10px;font-size:13px;border-top:1px solid var(--rule);padding-top:7px}
+  .note span{font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;display:block}
+  .decide{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .decide label{font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase}
+  .decide select,.decide input{font-family:var(--mono);font-size:13px;background:transparent;color:var(--ink);
+    border:1px solid var(--ink);padding:8px;width:100%;outline:none;appearance:none;-webkit-appearance:none;border-radius:0}
+  .decide select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23141414'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 8px center;cursor:pointer}
+  .decide .btn{width:100%}
+  .decide .mini{font-size:11px;padding:7px 10px}
+
+  /* the stamp: the only flourish in the building */
+  .stampbox{position:relative;min-height:64px}
+  .stamp{position:absolute;top:2px;left:0;display:inline-block;border:3px solid var(--red);color:var(--red);
+    font-weight:900;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 12px;
+    transform:rotate(-5deg);mix-blend-mode:multiply;
+    -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60'%3E%3Cfilter id='r'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.92 0.08'/%3E%3C/filter%3E%3Crect width='120' height='60' filter='url(%23r)'/%3E%3C/svg%3E");
+    -webkit-mask-size:cover;mask-size:cover}
+  .stamp.ink{border-color:var(--ink);color:var(--ink)}
+  .stamp.open{border-style:dashed;border-width:2px;color:var(--ink);opacity:.45;transform:rotate(-2deg)}
+  @keyframes slam{0%{transform:rotate(-14deg) scale(2.1);opacity:0}55%{transform:rotate(-4deg) scale(.94);opacity:1}75%{transform:rotate(-5.5deg) scale(1.03)}100%{transform:rotate(-5deg) scale(1)}}
+  .stamp.slam{animation:slam .38s cubic-bezier(.2,0,0,1) both}
+  @media (prefers-reduced-motion: reduce){ .stamp.slam{animation:none} }
+
+  .secttl{font-weight:900;font-size:17px;text-transform:uppercase;letter-spacing:.5px;margin:34px 0 0;
+    border-bottom:3px solid var(--ink);padding-bottom:6px}
+  .secttl small{font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:1.5px;margin-left:10px}
+  .annex{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink);border-top:none}
+  .annex>div{padding:14px 18px}
+  .annex>div:first-child{border-right:1px solid var(--rule)}
+  .annex h4{margin:0 0 10px;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .annex svg text{font-family:var(--mono)}
+  .reportbody{font-family:var(--mono);font-size:13px;padding:14px 18px;border:1px solid var(--ink);border-top:none}
+  .reportbody table{width:100%;border-collapse:collapse}
+  .reportbody th{font-family:var(--sans);font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:left;
+    border-bottom:2px solid var(--ink);padding:5px 6px}
+  .reportbody td{border-bottom:1px solid var(--rule);padding:5px 6px}
+  .filepick{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .filepick input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+  .filepick .fname{font-family:var(--mono);font-size:13px}
+  .hint{font-family:var(--mono);font-size:12px;line-height:1.7;max-width:760px}
+  #importResult{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;margin-top:10px}
+  .err{color:var(--red);font-family:var(--mono);font-size:12.5px;min-height:17px;margin:6px 0 0}
+  .empty{font-family:var(--mono);padding:22px 4px;border-bottom:1px solid var(--ink)}
+
+  /* the blank waybill at the bottom of the pile */
+  .blank{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--ink);border-top:none}
+  .blank .field{padding:12px 16px}
+  .blank .wide{grid-column:span 2}
+  .blankfoot{display:flex;gap:10px;align-items:center;border:1px solid var(--ink);border-top:none;padding:12px 16px}
+
+  /* login: one form, centred on the desk */
+  #login{max-width:400px;margin:56px auto;border:2px solid var(--ink);padding:26px 26px 18px;background:var(--paper)}
+  #login h2{margin:0 0 4px;font-weight:900;font-size:21px;text-transform:uppercase}
+  #login .sub{font-family:var(--mono);font-size:11.5px;margin:0 0 16px}
+  #login .field{border-right:none;margin:0 0 14px;padding:0}
+  #login .btn{width:100%}
+  #login .demo{font-family:var(--mono);font-size:11px;margin-top:14px}
+
+  @media(max-width:860px){
+    .toolbar{grid-template-columns:1fr 1fr}
+    .form{grid-template-columns:84px 1fr}
+    .decide{grid-column:1 / -1;border-top:1px solid var(--rule)}
+    .fgrid{grid-template-columns:1fr 1fr}
+    .annex{grid-template-columns:1fr}
+    .annex>div:first-child{border-right:none;border-bottom:1px solid var(--rule)}
+    .blank{grid-template-columns:1fr}
+    .masthead{grid-template-columns:1fr}
+    .mast-note{text-align:left}
+  }
+  @media print{
+    body{background:#fff}
+    .toolbar,.ledgerline,#list,.annex,.no-print,.secttl.annex-ttl,#login{display:none !important}
+    .reportbody{border:none;padding:0}
+    .sheet{padding:0}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="masthead">
+    <div class="mark">
+      <svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">
+        <rect x="2" y="2" width="42" height="42" fill="none" stroke="#141414" stroke-width="3"/>
+        <path d="M10 29 L23 14 L36 29" fill="none" stroke="#C8102E" stroke-width="3.5"/>
+        <line x1="12" y1="36" x2="34" y2="36" stroke="#141414" stroke-width="3"/>
+      </svg>
+      <div class="wordmark">RTS Returns<small>Station waybill ledger</small></div>
+    </div>
+    <div></div>
+    <p class="mast-note">Every parcel that came back tonight is a form below.<br>
+    No decision, no stamp. <b>A reship needs a logged customer call first.</b></p>
+  </div>
+
+  <div id="login">
+    <h2>Returns desk</h2>
+    <p class="sub">Supervisor sign in</p>
+    <div class="field"><label for="u">Username</label><input id="u" autocomplete="username"></div>
+    <div class="field"><label for="p">Password</label><input id="p" type="password" autocomplete="current-password"></div>
+    <button class="btn" onclick="login()">Sign in</button>
+    <p class="demo">Demo account: rtsdesk / demo1234 (local only)</p>
+    <p class="err" id="err"></p>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="ledgerline">
+      <div><span>Returns today</span><b id="sTotal">0</b></div>
+      <div class="hot"><span>Awaiting decision</span><b id="sWait">0</b></div>
+      <div><span>Not home · DNR</span><b id="sDnr">0</b></div>
+      <div><span>Bad address</span><b id="sAddr">0</b></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="field"><label for="day">Working day</label><input type="date" id="day"></div>
+      <div class="field"><label for="q">Search the pile</label><input type="search" id="q" placeholder="Tracking, courier or office"></div>
+      <div class="field"><label for="status">Decision state</label>
+        <select id="status">
+          <option value="">All forms</option>
+          <option value="waiting">Awaiting decision</option>
+          <option value="reship">Reship</option>
+          <option value="hold_call">Hold for customer call</option>
+          <option value="back_to_seller">Back to seller</option>
+          <option value="refund">Refund</option>
+        </select>
+      </div>
+      <button class="btn plain" onclick="load()">Reload</button>
+    </div>
+
+    <div id="list"></div>
+
+    <h3 class="secttl annex-ttl">Annex <small>Drawn from the same ledger, last 14 days</small></h3>
+    <div class="annex">
+      <div><h4>Returns by reason</h4><div id="chartReason"></div></div>
+      <div><h4>Returns per day</h4><div id="chartTrend"></div></div>
+    </div>
+
+    <h3 class="secttl">Printed report <small>For the station file</small></h3>
+    <div class="no-print" style="display:flex;gap:10px;padding-top:12px">
+      <button class="btn plain" onclick="loadReport(1)">Today</button>
+      <button class="btn plain" onclick="loadReport(7)">This week</button>
+      <button class="btn" onclick="window.print()">Print report</button>
+    </div>
+    <div class="reportbody" id="reportBody"><p>Pick today or this week.</p></div>
+
+    <h3 class="secttl no-print">Import the night pile <small>CSV</small></h3>
+    <div class="no-print" style="padding-top:12px">
+      <p class="hint">Columns: tracking, courier, office, reason, day. customer_phone is optional.
+      A duplicate tracking number is refused and named in the result below, never merged quietly.</p>
+      <div class="filepick">
+        <label class="btn plain" for="csvFile">Choose CSV file</label>
+        <input type="file" id="csvFile" accept=".csv,text/csv">
+        <span class="fname" id="csvName">No file chosen</span>
+        <button class="btn" onclick="importCsv()">Import file</button>
+      </div>
+      <p id="importResult"></p>
+    </div>
+
+    <h3 class="secttl">New waybill <small>Log a return by hand</small></h3>
+    <div class="blank">
+      <div class="field"><label for="nTracking">Tracking number</label><input id="nTracking"></div>
+      <div class="field"><label for="nCourier">Courier</label><input id="nCourier"></div>
+      <div class="field"><label for="nOffice">Office</label><input id="nOffice"></div>
+      <div class="field"><label for="nReason">Reason code</label>
+        <select id="nReason">
+          <option value="DNR">DNR — customer not home</option>
+          <option value="REFUSED">Refused at the door</option>
+          <option value="BAD_ADDRESS">Bad address</option>
+          <option value="DAMAGED">Damaged</option>
+          <option value="NO_CASH">No cash on delivery</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="field wide"><label for="nPhone">Customer phone</label><input id="nPhone"></div>
+    </div>
+    <div class="blankfoot">
+      <button class="btn" onclick="addReturn()">File this return</button>
+      <p class="err" id="addErr"></p>
+    </div>
+  </div>
+</div>
+<script>
+let token = sessionStorage.getItem('rts_token') || '';
+const REASON_EN = {DNR:'Customer not home', REFUSED:'Refused at the door', BAD_ADDRESS:'Bad address', DAMAGED:'Damaged', NO_CASH:'No cash on delivery', OTHER:'Other'};
+const DEC_EN = {reship:'Reship', hold_call:'Hold for call', back_to_seller:'Back to seller', refund:'Refund'};
+async function api(path, opts={}){
+  const r = await fetch(path, {headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, ...opts});
+  if(r.status === 401) throw new Error('auth');
+  return r;
+}
+async function login(){
+  const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username: u.value, password: p.value})});
+  if(!r.ok){ err.textContent = 'Wrong username or password.'; return; }
+  token = (await r.json()).token;
+  sessionStorage.setItem('rts_token', token);
+  day.value = '2026-10-24';
+  load();
+}
+function stampFor(r){
+  const just = sessionStorage.getItem('rts_just_decided') === String(r.id);
+  if(!r.decision) return '<span class="stamp open">No decision</span>';
+  const cls = r.decision === 'hold_call' ? 'stamp ink' : 'stamp';
+  return `<span class="${cls}${just ? ' slam' : ''}">${DEC_EN[r.decision]}</span>`;
+}
+async function load(){
+  try{
+    const board = await (await api('/api/board?day=' + day.value)).json();
+    const qs = new URLSearchParams({q: q.value, status: statusSel()});
+    const list = await (await api('/api/returns?' + qs)).json();
+    loginBox(false);
+    loadReport(reportDays).catch(() => {});
+    sTotal.textContent = board.total;
+    sWait.textContent = board.waiting_decision;
+    sDnr.textContent = board.by_reason['DNR'] || 0;
+    sAddr.textContent = board.by_reason['BAD_ADDRESS'] || 0;
+    document.getElementById('list').innerHTML = list.returns.map(r => `
+      <article class="form">
+        <div class="serial"><div class="no">№${String(r.id).padStart(3,'0')}</div><div class="lbl">FORM RTS-${r.day.replaceAll('-','')}</div></div>
+        <div class="fields">
+          <h3>${esc(r.tracking)}</h3>
+          <div class="fgrid">
+            <div><span>Courier</span><b>${esc(r.courier)}</b></div>
+            <div><span>Office</span><b>${esc(r.office)}</b></div>
+            <div><span>Reason</span><b>${REASON_EN[r.reason] || esc(r.reason)}</b></div>
+            <div><span>Returned</span><b class="mono">${r.day}</b></div>
+            <div><span>Customer calls logged</span><b class="mono">${r.contact_attempts}</b></div>
+            <div><span>Customer phone</span><b class="mono">${esc(r.customer_phone || '—')}</b></div>
+          </div>
+          ${r.note ? `<p class="note"><span>Desk note</span>${esc(r.note)}</p>` : ''}
+        </div>
+        <div class="decide">
+          <div class="stampbox">${stampFor(r)}</div>
+          <button class="btn plain mini" onclick="contact(${r.id})">Log a customer call</button>
+          <label for="dec-${r.id}">Decision</label>
+          <select id="dec-${r.id}">
+            <option value="">Choose a decision</option>
+            <option value="reship">Reship, address fixed</option>
+            <option value="hold_call">Hold until the customer calls</option>
+            <option value="back_to_seller">Back to seller</option>
+            <option value="refund">Refund</option>
+          </select>
+          <input id="note-${r.id}" placeholder="Decision note">
+          <button class="btn" onclick="decide(${r.id})">Stamp it</button>
+        </div>
+      </article>`).join('') || '<p class="empty">Nothing in the pile matches.</p>';
+    sessionStorage.removeItem('rts_just_decided');
+  }catch(e){ loginBox(true); }
+}
+function statusSel(){ return document.getElementById('status').value; }
+function errMsg(body){ return (body && body.error && body.error.message) || 'Something went wrong'; }
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function barChart(el, entries, color){
+  const max = Math.max(1, ...entries.map(e => e[1]));
+  const rows = entries.map(([label, v], i) => {
+    const w = Math.round(v / max * 250);
+    return `<rect x="0" y="${i * 30 + 4}" width="${w}" height="18" fill="${color}"></rect>` +
+      `<text x="${w + 8}" y="${i * 30 + 18}" font-size="12" fill="#141414">${esc(label)} — ${v}</text>`;
+  }).join('');
+  el.innerHTML = entries.length ? `<svg viewBox="0 0 470 ${entries.length * 30 + 6}" role="img">${rows}</svg>` : '<p class="hint">No data.</p>';
+}
+function trendChart(el, trend){
+  const max = Math.max(1, ...trend.map(t => t.total));
+  const bw = Math.floor(440 / Math.max(1, trend.length));
+  const bars = trend.map((t, i) => {
+    const h = Math.round(t.total / max * 108);
+    return `<rect x="${i * bw + 8}" y="${128 - h}" width="${bw - 10}" height="${h}" fill="#141414"></rect>` +
+      `<text x="${i * bw + 10}" y="144" font-size="9" fill="#141414">${t.day.slice(5)}</text>` +
+      `<text x="${i * bw + 10}" y="${122 - h}" font-size="11" fill="#141414">${t.total || ''}</text>`;
+  }).join('');
+  el.innerHTML = `<svg viewBox="0 0 460 150" role="img">${bars}<line x1="0" y1="128" x2="460" y2="128" stroke="#141414" stroke-width="2"/></svg>`;
+}
+let reportDays = 7;
+async function loadReport(days){
+  reportDays = days || reportDays;
+  const end = day.value || '2026-10-24';
+  const fromDate = new Date(end + 'T00:00:00');
+  fromDate.setDate(fromDate.getDate() - (reportDays - 1));
+  const from = fromDate.toISOString().slice(0, 10);
+  const r = await api(`/api/report?from=${from}&to=${end}`);
+  if(!r.ok) return;
+  const rep = await r.json();
+  barChart(document.getElementById('chartReason'),
+    Object.entries(rep.by_reason).sort((a, b) => b[1] - a[1]).map(([k, v]) => [REASON_EN[k] || k, v]), '#C8102E');
+  const trendFrom = new Date(end + 'T00:00:00');
+  trendFrom.setDate(trendFrom.getDate() - 13);
+  const tr = await (await api(`/api/report?from=${trendFrom.toISOString().slice(0, 10)}&to=${end}`)).json();
+  trendChart(document.getElementById('chartTrend'), tr.trend || []);
+  const rows = (tr.trend || []).filter(t => t.day >= from).map(t =>
+    `<tr><td>${t.day}</td><td>${t.total}</td><td>${t.waiting}</td></tr>`).join('');
+  const reasons = Object.entries(rep.by_reason).map(([k, v]) => `${REASON_EN[k] || k}: ${v}`).join(' · ') || 'none';
+  document.getElementById('reportBody').innerHTML =
+    `<p>Period ${rep.from} to ${rep.to} · Total <b>${rep.total}</b> · Awaiting decision <b>${rep.waiting_decision}</b></p>` +
+    `<p>By reason: ${esc(reasons)}</p>` +
+    `<table><tr><th>Day</th><th>Returns</th><th>Awaiting decision</th></tr>${rows}</table>`;
+}
+async function importCsv(){
+  const f = document.getElementById('csvFile').files[0];
+  const out = document.getElementById('importResult');
+  if(!f){ out.textContent = 'Choose a CSV file first.'; return; }
+  const text = await f.text();
+  const r = await fetch('/api/import', {method: 'POST', headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/csv'}, body: text});
+  const body = await r.json();
+  if(!r.ok){ out.textContent = 'Import refused: ' + errMsg(body) + (body.missing ? ' (missing: ' + body.missing.join(', ') + ')' : ''); return; }
+  const bad = body.rejected_rows.map(x => `Row ${x.row}: ${x.reason}`).join('\n');
+  out.textContent = `Filed ${body.inserted} of ${body.total_rows}. Duplicates skipped: ${body.skipped_duplicates.join(', ') || 'none'}.` +
+    (bad ? '\nRejected rows:\n' + bad : '');
+  load();
+}
+function loginBox(show){
+  document.getElementById('login').style.display = show ? 'block' : 'none';
+  document.getElementById('app').style.display = show ? 'none' : 'block';
+}
+async function contact(id){
+  await api(`/api/returns/${id}/contact`, {method:'POST', body:'{}'});
+  load();
+}
+async function decide(id){
+  const d = document.getElementById('dec-' + id).value;
+  const r = await api(`/api/returns/${id}/decision`, {method:'POST',
+    body: JSON.stringify({decision: d, note: document.getElementById('note-' + id).value})});
+  if(!r.ok){ alert(errMsg(await r.json())); return; }
+  sessionStorage.setItem('rts_just_decided', String(id));
+  load();
+}
+async function addReturn(){
+  const r = await api('/api/returns', {method:'POST', body: JSON.stringify({
+    tracking: nTracking.value, courier: nCourier.value, office: nOffice.value,
+    reason: nReason.value, customer_phone: nPhone.value, day: day.value})});
+  if(!r.ok){ addErr.textContent = errMsg(await r.json()); return; }
+  addErr.textContent = ''; nTracking.value = '';
+  load();
+}
+const day = document.getElementById('day'), q = document.getElementById('q');
+q.addEventListener('input', load);
+document.getElementById('status').addEventListener('change', load);
+document.getElementById('csvFile').addEventListener('change', e => {
+  document.getElementById('csvName').textContent = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
+});
+if(token){ day.value = '2026-10-24'; load(); }
+</script>
+</body>
+</html>

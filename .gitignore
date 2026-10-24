@@ -1,0 +1,6 @@
+*.db
+__pycache__/
+*.log
+*.log.*
+backups/
+config.env
