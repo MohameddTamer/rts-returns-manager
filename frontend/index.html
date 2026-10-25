@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RTS Returns Ledger — Station Waybills</title>
+<title>RTS Returns Ledger, Station Waybills</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -231,7 +231,7 @@
       <div class="field"><label for="nOffice">Office</label><input id="nOffice"></div>
       <div class="field"><label for="nReason">Reason code</label>
         <select id="nReason">
-          <option value="DNR">DNR — customer not home</option>
+          <option value="DNR">DNR, customer not home</option>
           <option value="REFUSED">Refused at the door</option>
           <option value="BAD_ADDRESS">Bad address</option>
           <option value="DAMAGED">Damaged</option>
@@ -293,7 +293,7 @@ async function load(){
             <div><span>Reason</span><b>${REASON_EN[r.reason] || esc(r.reason)}</b></div>
             <div><span>Returned</span><b class="mono">${r.day}</b></div>
             <div><span>Customer calls logged</span><b class="mono">${r.contact_attempts}</b></div>
-            <div><span>Customer phone</span><b class="mono">${esc(r.customer_phone || '—')}</b></div>
+            <div><span>Customer phone</span><b class="mono">${esc(r.customer_phone || '-')}</b></div>
           </div>
           ${r.note ? `<p class="note"><span>Desk note</span>${esc(r.note)}</p>` : ''}
         </div>
@@ -323,7 +323,7 @@ function barChart(el, entries, color){
   const rows = entries.map(([label, v], i) => {
     const w = Math.round(v / max * 250);
     return `<rect x="0" y="${i * 30 + 4}" width="${w}" height="18" fill="${color}"></rect>` +
-      `<text x="${w + 8}" y="${i * 30 + 18}" font-size="12" fill="#141414">${esc(label)} — ${v}</text>`;
+      `<text x="${w + 8}" y="${i * 30 + 18}" font-size="12" fill="#141414">${esc(label)}, ${v}</text>`;
   }).join('');
   el.innerHTML = entries.length ? `<svg viewBox="0 0 470 ${entries.length * 30 + 6}" role="img">${rows}</svg>` : '<p class="hint">No data.</p>';
 }
