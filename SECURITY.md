@@ -1,4 +1,4 @@
-# Security — RTS Returns Manager
+# Security, RTS Returns Manager
 
 Local demo posture, stated plainly. This version runs on one machine for a
 station desk; it is not hardened for the public internet.
